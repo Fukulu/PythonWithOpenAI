@@ -1,0 +1,136 @@
+# PYTHON & OPENAI-API (CHATGPT)
+## Projenin içeriği;
+#### -Python ile ChatGPT bağlantısını kurmak
+#### -Sorgu yapabilmek ve Cevabını kullanmak
+#### -Pandas Kütüphanesini kullanarak CSV formatında hazırlanan soruları çekmek
+#### -Yazılan hazır fonksiyon ve döngü yapısını kullanarak otomatik olarak sorguları tekrarlamak
+#### -Alınan Cevapları CSV Tablomuza otomatik olarak yerleştirmek
+-------------------------------------------------------------------------------
+                                # OPEN AI - API
+-------------------------------------------------------------------------------
+# 1) Öncelikle Open AI sitesine gidip "https://platform.openai.com/overview"
+sitesine gidip bir hesap oluşturuyoruz. Yeni hesap oluşturan herkese OpenAI
+tarafından belli bir süreliğine kullanabileceğiniz API otomatik ve ücretsiz olarak
+oluşturuluyor. Fakat hali hazırda kullanım hiç yapmadıysanız ve API anahtarınızın
+süresi doldu ise kolaylıkla satın alım yaparak yeni API anahtarınızı
+kullanabilirsiniz. Ücretlendirme olarak kullandığınız yapay zeka motoruna göre ve
+sorgu miktarıyla orantılı olarak faturalandırılıyorsunuz. Merak etmeyin yüzlerce
+sorgu ve alınan uzun cevaplara rağmen 0.50$ lık bir masraf çıkarıyor. Gerçekten
+kazanılan zamanın yanında mükemmel bir ücret.
+-------------------------------------------------------------------------------
+# 2) Kod Editörümüzü açıyoruz ve terminal üzerinden öncelikle "openai" paketini yüklüyoruz.
+
+        pip install openai
+-------------------------------------------------------------------------------
+# 3) Yükleme işlemini tamamladıktan sonra şimdi projemizde kullanacağımız kütüphaneleri
+import etmemiz lazım.
+# NOT: Pandas yüklü değil ise aynı şekilde terminal üzerinden "pip install pandas" komutu ile yükleme yapabilirsiniz.
+
+        import openai
+        import asyncio
+        import pandas as pd
+-------------------------------------------------------------------------------
+# 4) Ardından "https://platform.openai.com/account/api-keys" adresinden satın olmuş
+olduğunuz API anahtarınızı kopyalayın ve API anahtarımızı projemizde tanımlayalım.
+
+        openai.api_key = "YOUR API-KEY"
+-------------------------------------------------------------------------------
+# 5) Tek seferlik basit bir sorgu yapmak istediğimizi düşünelim. Yaptığımız sorguyu
+"chat_completion" değerine atıyoruz. Aşağıda gördüğünüz yapı içerisindeki "content"
+bölümüne istediğiniz sorguyu yerleştirmeniz gerekiyor. Örnekte "Hello Chat GPT How Are You?"
+şeklinde bir soru sorduk.
+
+        chat_completion = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                               messages=[{"role": "user", "content": "Hello Chat GPT How Are You?"}])
+-------------------------------------------------------------------------------
+# 6) Şimdi yaptığımız sorgunun cevabını almaya geldik. Bunun için basit bir print
+fonksiyonu içerisine eklemeler yapacağız.
+
+        print(chat_completion.choices[0].message.content)
+-------------------------------------------------------------------------------
+# 7) Sırada Pandas Kütüphanesini kullanarak Csv formatında hazırladığımız soru
+tablosundan sırasıyla verileri çekerek chatGPT sorgularımızı yapıp cevapları
+doğru kolonlara yerleştireceğimiz aşamaya geldik. Projemize dahil ettiğimiz
+"Example.csv" dosyasında 20 adet almanca kelime yer almaktadır. Chat GPT den bu
+kelimeler ile örnek bir cümle kurmasını ve bu kelimenin ve kurduğu cümlenin Türkçe
+ve İngilizce çevirisini yapmasını isteyeceğiz.
+
+# Öncelikle "Example.csv" dosyasını pandas kütüphanesi yardımı ile tanımlıyoruz:
+
+        df = pd.read_csv("Example.csv")
+        df.head()                           # -> komutu ile tablomuzu kısayoldan kontrol ediyoruz
+
+# NOT: DataFrame tanımlaması yaparken bu komutuda kullanabilirsiniz:
+
+        df = pd.read_csv("Example.csv", delimiter=';', skiprows=0, low_memory=False)
+-------------------------------------------------------------------------------
+# 8) Şimdi basit chatGPT sorgumuzu bir fonksiyon içerisinde kullanacak
+şekilde tanımlayacağız. Bu fonksiyonumuzda bir argüman almalı çünkü bu argüman soracağımız
+soru olacak.
+
+        def ask_gpt(word):
+            prompt = f"Lütfen bundan sonra sana verdiğim almanca kelimeyi belirttiğim formatta aralarına ; koyarak tek bir satırda olacak şekilde bana cevap verebilir misin? işte formatın örneği: (almanca kelime);(Türkçe karşılığı);(İngilizce Karşılığı);(Almanca kelimenin yer aldığı Cümle);(Cümlenin Türkçesi);(Cümlenin İngilizcesi) sana verdiğim kelime ise {word}"
+            chat_completion = openai.ChatCompletion.create(model="gpt-3.5-turbo",
+                                               messages=[{"role": "user", "content": prompt}])
+            return chat_completion.choices[0].message.content
+
+# NOT: "prompt" değeri soracağımız soruyu temsil ediyor. Fakat farkettiyseniz sorumuzu
+    son derece detaylı bir şekilde alacağımız cevabın formatını belirleyerek hazırlıyoruz.
+    En son fonksiyonumuzun argümanını ekliyoruz. Daha sonra csv'den çekeceğimiz almanca
+    kelimeleri fonksiyonumuzda argüman olarak gireceğiz.
+        "chat_completion" değerinde sorguyu tanımlıyoruz ve content kısmına sorumuz olan
+    "prompt" u ekliyoruz.
+        Son olarak return değeri ile GPT'nin bize verdiği cevabı döndürüyoruz.
+-------------------------------------------------------------------------------
+# 9) Sırada bir for loop döngüsünü kurarak ChatGPT'ye sorgularımızı tek tek yapmak
+yerine tek seferde en az 10 soru soracağız. Bütün bir CSV tablosunuda kullanabilirsiniz.
+Fakat yapay zeka ile çalıştığımız için herhangi bir hata, bağlantı kopması durumunda
+geriye dönük kontrol yapmak veya hata ayıklamak çok daha zor olacağı için şimdilik 10
+adet sorgu yapmayı deneyeceğiz. Bu sayıyı dilediğiniz gibi artırabilirsiniz.
+
+        for i in range(0, 10):
+            answer = ask_gpt(df.loc[i]["wordDe"])
+            await asyncio.sleep(5)
+            ans_list = answer.split(sep=';')
+            await asyncio.sleep(2)
+            ans_list[1] = ans_list[1].capitalize()
+            ans_list[2] = ans_list[2].capitalize()
+            await asyncio.sleep(2)
+            df.loc[i, "wordTr"] = ans_list[1]
+            df.loc[i, "wordEn"] = ans_list[2]
+            df.loc[i, "sentence"] = ans_list[3]
+            df.loc[i, "sentenceTr"] = ans_list[4]
+            df.loc[i, "sentenceEn"] = ans_list[5]
+            await asyncio.sleep(1)
+
+# NOT: - Csv tablomuza baktığımızda ilk kelimemiz 0. satırda yer alıyor ve
+        9. satır dahil toplam 10 adet satır için dataframe'imizden satır başlığı
+        "wordDe" olan kelimeyi çekiyoruz ve bunu argüman olarak "ask_gpt()"
+        fonksiyonumuzda kullanıyoruz. Ardından fonksiyonumuzun döndürdüğü sonucu
+        "answer" değerine atıyoruz.
+       - İnternet bağlantı kalitenize veya sunucu durumuna bağlı olarak sorgunun
+        tamamlanması zaman alabileceği için, herhangi bir hata almamak adına işlemler
+        arasında "await asyncio.sleep(5)" komutu ile döngüyü beklemeye alıyoruz ki
+        "answer" değerine atamamız tamamlansın.
+       - Ardından "ans_list" adında bir liste tanımlıyor ve GPT den aldığımız cevap
+        olan "answer" değerini split(sep=';') komutunu kullanarak ";" ayrıştırıyoruz.
+       - "ans_list[1] = ans_list[1].capitalize()" komutu ile İngilizce ve Türkçe
+        kelimelerin başharflerinin büyük olarak yazıldığından emin oluyoruz.
+       - Son olarak "ans_list" listemizden doğru sıralama ile değerleri çekip
+        doğru başlıklar altında doğru index numarasıne yerleşmesini sağlıyoruz.
+        "df.loc[i, "wordTr"] = ans_list[1]"
+
+-------------------------------------------------------------------------------
+# 10) Aynı for loop döngümüzü bu sefer range(10, 19) olacak şekilde tekrar çalıştırıp
+kalan diğer satırlarıda doldurabiliriz. Fakat öncesinde csv belgemizin kontrol etmekte
+fayda var bunun için:
+
+        df.loc[0:10]                    # -> İle satır aralığını yazdırabiliriz
+        df.iloc[7]                      # -> Yada tek bir satırın kontrolünü sağlayabiliriz
+
+-------------------------------------------------------------------------------
+# 11) Son aşama olarak üzerinde değişiklik yaptığımız CSV belgemizi kaydetmek
+için komutumuzu girmek kaldı:
+
+        df.to_csv("ExampleV2.csv", index=False)
+-------------------------------------------------------------------------------
